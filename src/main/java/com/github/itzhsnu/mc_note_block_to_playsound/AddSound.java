@@ -10,13 +10,20 @@ public class AddSound implements ActionListener {
 
     private final JComboBox<String> soundType = new JComboBox<>();
     private final JComboBox<String> note = new JComboBox<>();
-    private final JButton delete = new JButton("-");
+    private final JButton delete;
+    private final JButton up;
+    private final JButton down;
+
+    public AddSound(Main p, int pos, String soundType, int note) {
+        this(p, pos);
+
+        ((JTextField) this.soundType.getEditor().getEditorComponent()).setText(soundType);
+        this.note.setSelectedIndex(note);
+    }
 
     public AddSound(Main p, int pos) {
         this.p = p;
         this.pos = pos;
-
-        setPos();
 
         soundType.addItem("block.note_block.bass");
         soundType.addItem("block.note_block.snare");
@@ -41,11 +48,21 @@ public class AddSound implements ActionListener {
             note.addItem(String.valueOf(i));
         }
 
+        up = Buttons.up(pos, this);
+        down = Buttons.down(pos, this);
+        delete = Buttons.delete(pos, this);
+
+        up.addActionListener(this);
+        down.addActionListener(this);
         delete.addActionListener(this);
+
+        setPos();
 
         p.display.add(soundType);
         p.display.add(note);
         p.display.add(delete);
+        p.display.add(up);
+        p.display.add(down);
 
         p.list.add(this);
         SwingUtilities.updateComponentTreeUI(p);
@@ -54,7 +71,9 @@ public class AddSound implements ActionListener {
     public void setPos() {
         soundType.setBounds(5, 5 + pos * 30, 200, 20);
         note.setBounds(210, 5 + pos * 30, 40, 20);
-        delete.setBounds(255, 5 + pos * 30, 40, 20);
+        up.setBounds(255, 5 + 30 * pos, 20, 20);
+        down.setBounds(280, 5 + 30 * pos, 20, 20);
+        delete.setBounds(305, 5 + 30 * pos, 20, 20);
     }
 
     public String getSoundType() {
@@ -65,11 +84,23 @@ public class AddSound implements ActionListener {
         return note.getSelectedIndex();
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
+    public void removeAll() {
         p.display.remove(soundType);
         p.display.remove(note);
         p.display.remove(delete);
-        p.relocate(pos);
+        p.display.remove(up);
+        p.display.remove(down);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == up) {
+            p.up(pos);
+        } else if (e.getSource() == down) {
+            p.down(pos);
+        } else if (e.getSource() == delete) {
+            removeAll();
+            p.relocate(pos);
+        }
     }
 }

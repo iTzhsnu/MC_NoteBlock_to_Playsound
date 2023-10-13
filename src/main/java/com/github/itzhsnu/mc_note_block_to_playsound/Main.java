@@ -3,9 +3,13 @@ package com.github.itzhsnu.mc_note_block_to_playsound;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +17,7 @@ public class Main extends JFrame implements ActionListener {
     private final JButton addDelay = new JButton("Add Delay");
     private final JButton addSound = new JButton("Add Sound");
     private final JButton generate = new JButton("Generate");
+    private final JButton load = new JButton("Load");
     public final JPanel display = new JPanel();
     public final List<Object> list = new ArrayList<>();
 
@@ -22,29 +27,32 @@ public class Main extends JFrame implements ActionListener {
 
     public Main() {
         setTitle("MC Note Block to Playsound");
-        setBounds(100, 100, 350, 800);
+        setBounds(100, 100, 450, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(null);
 
         addDelay.setBounds(5, 5, 100, 40);
         addSound.setBounds(115, 5, 100, 40);
         generate.setBounds(225, 5, 100, 40);
+        load.setBounds(330, 5, 100, 40);
 
         display.setBorder(new LineBorder(Color.BLACK));
-        display.setPreferredSize(new Dimension(312, 100000));
+        display.setPreferredSize(new Dimension(330, 700));
         display.setLayout(null);
 
         JScrollPane scroll = new JScrollPane(display);
-        scroll.setBounds(5, 55, 330, 730);
+        scroll.setBounds(5, 55, 348, 700);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
 
         addDelay.addActionListener(this);
         addSound.addActionListener(this);
         generate.addActionListener(this);
+        load.addActionListener(this);
 
         getContentPane().add(addDelay);
         getContentPane().add(addSound);
         getContentPane().add(generate);
+        getContentPane().add(load);
         getContentPane().add(scroll);
     }
 
@@ -64,16 +72,56 @@ public class Main extends JFrame implements ActionListener {
             }
         }
 
+        display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
+
+        SwingUtilities.updateComponentTreeUI(this);
+    }
+
+    public void up(int pos) {
+        if (pos < 1) return;
+        List<Object> l = new ArrayList<>(list.subList(pos - 1, pos + 1)); //0 = Up, 1 = This
+
+        list.set(pos - 1, l.get(1)); //Move to Up
+        list.set(pos, l.get(0)); //Move to Down
+
+        relocate(pos - 1, pos + 1);
+    }
+
+    public void down(int pos) {
+        if (list.size() < pos + 2) return;
+        List<Object> l = new ArrayList<>(list.subList(pos, pos + 2)); //0 = This, 1 = Down
+
+        list.set(pos, l.get(1)); //Move to Up
+        list.set(pos + 1, l.get(0)); //Move to Down
+
+        relocate(pos, pos + 2);
+    }
+
+    //from Index inclusive, to Index exclusive
+    public void relocate(int fromIndex, int toIndex) {
+        for (int i = fromIndex; toIndex > i; ++i) {
+            Object o = list.get(i);
+            if (o instanceof AddSound) {
+                ((AddSound) o).pos = i;
+                ((AddSound) o).setPos();
+            } else if (o instanceof AddDelay) {
+                ((AddDelay) o).pos = i;
+                ((AddDelay) o).setPos();
+            }
+        }
+
         SwingUtilities.updateComponentTreeUI(this);
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == addDelay) {
+        if (e.getSource() == addDelay) { //Add Delay
             new AddDelay(this, list.size());
-        } else if (e.getSource() == addSound) {
+            display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
+        } else if (e.getSource() == addSound) { //Add Sound
             new AddSound(this, list.size());
-        } else if (e.getSource() == generate) {
+            display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
+        } else if (e.getSource() == generate) { //Generate
             int time = 0;
             StringBuilder sb = new StringBuilder();
             for (Object o : list) {
@@ -87,6 +135,33 @@ public class Main extends JFrame implements ActionListener {
 
             StringSelection selection = new StringSelection(sb.toString());
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+        } else if (e.getSource() == load) { //Load
+            for (Object o : list) {
+                if (o instanceof AddSound) {
+                    removeAll();
+                } else if (o instanceof AddDelay) {
+                    removeAll();
+                }
+            }
+
+            try {
+                int time = 0;
+                Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+                String[] ss = ((String) t.getTransferData(DataFlavor.stringFlavor)).split("\r?\n|\r");
+
+                for (String s : ss) {
+                    int thisTime = Integer.parseInt(s.split("Music=")[1].split("}]")[0]);
+                    if (thisTime > time) {
+                        new AddDelay(this, list.size(), thisTime - time);
+                        time = thisTime;
+                    }
+
+                    new AddSound(this, list.size(), s.substring(10).split(" master")[0], getNote(Float.parseFloat(s.split("~ ~ ~ 1 ")[1].split(" 1")[0])));
+                }
+                display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
+            } catch (IOException | UnsupportedFlavorException ioException) {
+                ioException.printStackTrace();
+            }
         }
     }
 
@@ -144,5 +219,62 @@ public class Main extends JFrame implements ActionListener {
                 return 2.0F;
         }
         return 0.5F;
+    }
+
+    public int getNote(float pitch) {
+        int iPitch = (int) Math.floor(pitch * 100);
+        switch (iPitch) {
+            case 50:
+                return 0;
+            case 52:
+                return 1;
+            case 56:
+                return 2;
+            case 59:
+                return 3;
+            case 62:
+                return 4;
+            case 66:
+                return 5;
+            case 70:
+                return 6;
+            case 74:
+                return 7;
+            case 79:
+                return 8;
+            case 84:
+                return 9;
+            case 89:
+                return 10;
+            case 94:
+                return 11;
+            case 100:
+                return 12;
+            case 105:
+                return 13;
+            case 112:
+                return 14;
+            case 118:
+                return 15;
+            case 125:
+                return 16;
+            case 133:
+                return 17;
+            case 141:
+                return 18;
+            case 149:
+                return 19;
+            case 158:
+                return 20;
+            case 168:
+                return 21;
+            case 178:
+                return 22;
+            case 188:
+                return 23;
+            case 200:
+                return 24;
+        }
+        return 0;
     }
 }
