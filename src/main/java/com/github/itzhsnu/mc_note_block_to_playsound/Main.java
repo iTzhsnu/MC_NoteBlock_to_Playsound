@@ -1,7 +1,10 @@
 package com.github.itzhsnu.mc_note_block_to_playsound;
 
+import javax.sound.sampled.*;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
@@ -13,11 +16,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Main extends JFrame implements ActionListener {
+public class Main extends JFrame implements ActionListener, ChangeListener {
     private final JButton addDelay = new JButton("Add Delay");
     private final JButton addSound = new JButton("Add Sound");
     private final JButton generate = new JButton("Generate");
     private final JButton load = new JButton("Load");
+    private final JLabel volumeText = new JLabel("Volume 100%");
+    private final JButton play = new JButton("Play");
+
+    public final JSlider volume = new JSlider(0, 100, 100);
+    public final SelectNotePane snp;
+
     public final JPanel display = new JPanel();
     public final List<Object> list = new ArrayList<>();
 
@@ -27,33 +36,44 @@ public class Main extends JFrame implements ActionListener {
 
     public Main() {
         setTitle("MC Note Block to Playsound");
-        setBounds(100, 100, 450, 800);
+        setBounds(100, 100, 800, 800); //W450
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(null);
 
         addDelay.setBounds(5, 5, 100, 40);
         addSound.setBounds(115, 5, 100, 40);
         generate.setBounds(225, 5, 100, 40);
-        load.setBounds(330, 5, 100, 40);
+        load.setBounds(335, 5, 100, 40);
+        play.setBounds(445, 5, 100, 40);
 
         display.setBorder(new LineBorder(Color.BLACK));
-        display.setPreferredSize(new Dimension(330, 700));
+        display.setPreferredSize(new Dimension(355, 700));
         display.setLayout(null);
 
         JScrollPane scroll = new JScrollPane(display);
-        scroll.setBounds(5, 55, 348, 700);
+        scroll.setBounds(5, 55, 373, 700);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
 
         addDelay.addActionListener(this);
         addSound.addActionListener(this);
         generate.addActionListener(this);
         load.addActionListener(this);
+        play.addActionListener(this);
+
+        volumeText.setBounds(400, 175, 200, 20);
+        volume.setBounds(400, 200, 200, 20);
+        volume.addChangeListener(this);
 
         getContentPane().add(addDelay);
         getContentPane().add(addSound);
         getContentPane().add(generate);
         getContentPane().add(load);
         getContentPane().add(scroll);
+        getContentPane().add(volume);
+        getContentPane().add(volumeText);
+        getContentPane().add(play);
+
+        snp = new SelectNotePane(this);
     }
 
     public void relocate(int pos) {
@@ -162,10 +182,17 @@ public class Main extends JFrame implements ActionListener {
             } catch (IOException | UnsupportedFlavorException ioException) {
                 ioException.printStackTrace();
             }
+        } else if (e.getSource() == play) { //Play
+            new PlayMusicThread().start();
         }
     }
 
-    public float getPitch(int note) {
+    @Override
+    public void stateChanged(ChangeEvent e) {
+        volumeText.setText("Volume " + volume.getValue() + "%");
+    }
+
+    public static float getPitch(int note) {
         switch (note) {
             case 0:
                 return 0.5F;
@@ -221,7 +248,7 @@ public class Main extends JFrame implements ActionListener {
         return 0.5F;
     }
 
-    public int getNote(float pitch) {
+    public static int getNote(float pitch) {
         int iPitch = (int) Math.floor(pitch * 100);
         switch (iPitch) {
             case 50:
@@ -276,5 +303,88 @@ public class Main extends JFrame implements ActionListener {
                 return 24;
         }
         return 0;
+    }
+
+    private final List<SourceDataLine> sdls = new ArrayList<>();
+    public class PlayMusicThread extends Thread {
+        @Override
+        public void run() {
+            try {
+                System.out.println("running");
+                for (Object o : list) {
+                    if (o instanceof AddSound) {
+                        new PlayAudioThread(((AddSound) o).getSoundType(), getPitch(((AddSound) o).getNote()), volume.getValue(), sdls).start();
+                    } else if (o instanceof AddDelay) {
+                        Thread.sleep(50L * ((AddDelay) o).getDelay());
+                    }
+                }
+
+                Thread.sleep(1000);
+
+                for (SourceDataLine sdl : sdls) {
+                    sdl.stop();
+                    sdl.close();
+                }
+                System.out.println("end");
+                this.interrupt();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static class PlayAudioThread extends Thread {
+        private final String audio;
+        private final float pitch;
+        private final int volume;
+        private final List<SourceDataLine> sdls;
+
+        public PlayAudioThread(String audio, float pitch, int volume, List<SourceDataLine> sdls) {
+            this.audio = audio;
+            this.pitch = pitch;
+            this.volume = volume;
+            this.sdls = sdls;
+        }
+
+        @Override
+        public void run() {
+            try {
+                playAudio();
+                Thread.sleep(1000);
+                this.interrupt();
+            } catch (InterruptedException | UnsupportedAudioFileException | LineUnavailableException | IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void playAudio() throws IOException, LineUnavailableException, UnsupportedAudioFileException {
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/" + audio + ".wav"));
+
+            AudioFormat audio = audioStream.getFormat();
+            AudioFormat editedAudio = new AudioFormat(audio.getEncoding(), audio.getSampleRate() * pitch, audio.getSampleSizeInBits(), audio.getChannels(), audio.getFrameSize(), audio.getFrameRate() * pitch, audio.isBigEndian());
+
+            DataLine.Info info = new DataLine.Info(SourceDataLine.class, editedAudio);
+            SourceDataLine sdl = (SourceDataLine) AudioSystem.getLine(info);
+
+            sdl.open(editedAudio);
+
+            FloatControl volumeControl = (FloatControl) sdl.getControl(FloatControl.Type.MASTER_GAIN);
+            volumeControl.setValue((float)Math.log10(volume / 100F) * 20);
+
+            int bufferSize = sdl.getBufferSize();
+            int bytesRead;
+            byte[] data = new byte[bufferSize];
+
+            sdl.start();
+
+            while ((bytesRead = audioStream.read(data, 0, data.length)) != -1) {
+                sdl.write(data, 0, bytesRead);
+            }
+
+            //sdl.stop();
+            sdl.drain();
+            //sdl.close();
+            if (sdls != null) sdls.add(sdl);
+        }
     }
 }

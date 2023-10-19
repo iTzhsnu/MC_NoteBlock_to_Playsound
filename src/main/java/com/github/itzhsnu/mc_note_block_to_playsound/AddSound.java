@@ -13,6 +13,7 @@ public class AddSound implements ActionListener {
     private final JButton delete;
     private final JButton up;
     private final JButton down;
+    private final JButton select;
 
     public AddSound(Main p, int pos, String soundType, int note) {
         this(p, pos);
@@ -48,13 +49,15 @@ public class AddSound implements ActionListener {
             note.addItem(String.valueOf(i));
         }
 
-        up = Buttons.up(pos, this);
-        down = Buttons.down(pos, this);
-        delete = Buttons.delete(pos, this);
+        up = Buttons.up(this);
+        down = Buttons.down(this);
+        delete = Buttons.delete(this);
+        select = Buttons.select(this);
 
         up.addActionListener(this);
         down.addActionListener(this);
         delete.addActionListener(this);
+        select.addActionListener(this);
 
         setPos();
 
@@ -63,9 +66,14 @@ public class AddSound implements ActionListener {
         p.display.add(delete);
         p.display.add(up);
         p.display.add(down);
+        p.display.add(select);
 
         p.list.add(this);
         SwingUtilities.updateComponentTreeUI(p);
+    }
+
+    public void setNote(int notePos) {
+        note.setSelectedIndex(notePos);
     }
 
     public void setPos() {
@@ -74,10 +82,11 @@ public class AddSound implements ActionListener {
         up.setBounds(255, 5 + 30 * pos, 20, 20);
         down.setBounds(280, 5 + 30 * pos, 20, 20);
         delete.setBounds(305, 5 + 30 * pos, 20, 20);
+        select.setBounds(330, 5 + 30 * pos, 20, 20);
     }
 
     public String getSoundType() {
-        return soundType.getItemAt(soundType.getSelectedIndex());
+        return ((JTextField) this.soundType.getEditor().getEditorComponent()).getText();
     }
 
     public int getNote() {
@@ -90,6 +99,7 @@ public class AddSound implements ActionListener {
         p.display.remove(delete);
         p.display.remove(up);
         p.display.remove(down);
+        p.display.remove(select);
     }
 
     @Override
@@ -101,6 +111,8 @@ public class AddSound implements ActionListener {
         } else if (e.getSource() == delete) {
             removeAll();
             p.relocate(pos);
+        } else if (e.getSource() == select) {
+            p.snp.posF.setText(String.valueOf(pos));
         }
     }
 }

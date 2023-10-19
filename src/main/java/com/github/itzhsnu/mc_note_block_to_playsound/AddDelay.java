@@ -23,9 +23,9 @@ public class AddDelay implements ActionListener {
         this.p = p;
         this.pos = pos;
 
-        up = Buttons.up(pos, this);
-        down = Buttons.down(pos, this);
-        delete = Buttons.delete(pos, this);
+        up = Buttons.up(this);
+        down = Buttons.down(this);
+        delete = Buttons.delete(this);
 
         up.addActionListener(this);
         down.addActionListener(this);
