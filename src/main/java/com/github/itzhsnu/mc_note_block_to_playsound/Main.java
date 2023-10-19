@@ -12,6 +12,7 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -358,7 +359,7 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
         }
 
         public void playAudio() throws IOException, LineUnavailableException, UnsupportedAudioFileException {
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/" + audio + ".wav"));
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(new BufferedInputStream(getClass().getResourceAsStream("/" + audio + ".wav")));
 
             AudioFormat audio = audioStream.getFormat();
             AudioFormat editedAudio = new AudioFormat(audio.getEncoding(), audio.getSampleRate() * pitch, audio.getSampleSizeInBits(), audio.getChannels(), audio.getFrameSize(), audio.getFrameRate() * pitch, audio.isBigEndian());
