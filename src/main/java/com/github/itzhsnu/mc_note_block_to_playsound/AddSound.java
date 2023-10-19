@@ -8,17 +8,16 @@ public class AddSound implements ActionListener {
     private final Main p;
     public int pos;
 
-    private final JComboBox<String> soundType = new JComboBox<>();
+    public final JComboBox<String> soundType = new JComboBox<>();
     private final JComboBox<String> note = new JComboBox<>();
     private final JButton delete;
     private final JButton up;
     private final JButton down;
     private final JButton select;
 
-    public AddSound(Main p, int pos, String soundType, int note) {
+    public AddSound(Main p, int pos, int note) {
         this(p, pos);
 
-        ((JTextField) this.soundType.getEditor().getEditorComponent()).setText(soundType);
         this.note.setSelectedIndex(note);
     }
 

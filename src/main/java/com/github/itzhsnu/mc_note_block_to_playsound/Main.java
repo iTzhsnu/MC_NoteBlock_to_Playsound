@@ -157,34 +157,50 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
             StringSelection selection = new StringSelection(sb.toString());
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
         } else if (e.getSource() == load) { //Load
-            for (Object o : list) {
-                if (o instanceof AddSound) {
-                    removeAll();
-                } else if (o instanceof AddDelay) {
-                    removeAll();
-                }
-            }
-
-            try {
-                int time = 0;
-                Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
-                String[] ss = ((String) t.getTransferData(DataFlavor.stringFlavor)).split("\r?\n|\r");
-
-                for (String s : ss) {
-                    int thisTime = Integer.parseInt(s.split("Music=")[1].split("}]")[0]);
-                    if (thisTime > time) {
-                        new AddDelay(this, list.size(), thisTime - time);
-                        time = thisTime;
-                    }
-
-                    new AddSound(this, list.size(), s.substring(10).split(" master")[0], getNote(Float.parseFloat(s.split("~ ~ ~ 1 ")[1].split(" 1")[0])));
-                }
-                display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
-            } catch (IOException | UnsupportedFlavorException ioException) {
-                ioException.printStackTrace();
-            }
+            loadData();
         } else if (e.getSource() == play) { //Play
             new PlayMusicThread().start();
+        }
+    }
+
+    public void loadData() {
+        for (Object o : list) {
+            if (o instanceof AddSound) {
+                removeAll();
+            } else if (o instanceof AddDelay) {
+                removeAll();
+            }
+        }
+
+        try {
+            int time = 0;
+            Transferable t = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+            String[] ss = ((String) t.getTransferData(DataFlavor.stringFlavor)).split("\r?\n|\r");
+            List<String> soundNames = new ArrayList<>();
+
+            for (String s : ss) {
+                String[] command = s.split(" ");
+                int thisTime = Integer.parseInt(command[3].split("Music=")[1].split("}]")[0]);
+                if (thisTime > time) {
+                    new AddDelay(this, list.size(), thisTime - time);
+                    time = thisTime;
+                    soundNames.add("");
+                }
+
+                new AddSound(this, list.size(), getNote(Float.parseFloat(command[8])));
+                soundNames.add(command[1]);
+            }
+            display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
+
+            for (int i = 0; list.size() > i; ++i) {
+                Object o = list.get(i);
+                if (o instanceof AddSound) {
+                    ((JTextField) ((AddSound) o).soundType.getEditor().getEditorComponent()).setText(soundNames.get(i));
+                }
+            }
+
+        } catch (IOException | UnsupportedFlavorException ex) {
+            ex.printStackTrace();
         }
     }
 
