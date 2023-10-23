@@ -195,7 +195,7 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
             for (int i = 0; list.size() > i; ++i) {
                 Object o = list.get(i);
                 if (o instanceof AddSound) {
-                    ((JTextField) ((AddSound) o).soundType.getEditor().getEditorComponent()).setText(soundNames.get(i));
+                    ((AddSound) o).soundType.setSelectedItem(soundNames.get(i));
                 }
             }
 

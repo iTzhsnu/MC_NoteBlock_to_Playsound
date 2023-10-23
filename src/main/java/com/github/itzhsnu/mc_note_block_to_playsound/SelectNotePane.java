@@ -1,13 +1,10 @@
 package com.github.itzhsnu.mc_note_block_to_playsound;
 
-import javax.sound.sampled.*;
+import javax.sound.sampled.SourceDataLine;
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -106,12 +103,16 @@ public class SelectNotePane implements ActionListener {
         for (int i = 0; buttons.size() > i; ++i) {
             JButton b = buttons.get(i);
             if (e.getSource() == b) {
-                if (posF.getText().isEmpty()) {
-                    new AudioManage(i).start();
-                } else {
-                    Object o = main.list.get(Integer.parseInt(posF.getText()));
-                    if (o instanceof AddSound) {
-                        ((AddSound) o).setNote(i);
+                new AudioManage(i).start();
+                if (!posF.getText().isEmpty()) {
+                    int pos = Integer.parseInt(posF.getText());
+                    if (pos == -1) {
+                        new AddSound(main, main.list.size(), i).soundType.setSelectedItem(soundType.getItemAt(soundType.getSelectedIndex()));
+                    } else if (pos > -1) {
+                        Object o = main.list.get(pos);
+                        if (o instanceof AddSound) {
+                            ((AddSound) o).setNote(i);
+                        }
                     }
                 }
             }
