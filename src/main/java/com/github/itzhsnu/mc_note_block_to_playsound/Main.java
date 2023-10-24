@@ -25,6 +25,8 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
     private final JLabel volumeText = new JLabel("Volume 100%");
     private final JButton play = new JButton("Play");
 
+    public final JCheckBox insert = new JCheckBox("Insert");
+    public final JTextField posF = new JTextField();
     public final JSlider volume = new JSlider(0, 100, 100);
     public final SelectNotePane snp;
 
@@ -46,6 +48,8 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
         generate.setBounds(225, 5, 100, 40);
         load.setBounds(335, 5, 100, 40);
         play.setBounds(445, 5, 100, 40);
+        insert.setBounds(400, 227, 80, 20);
+        posF.setBounds(400, 257, 40, 20);
 
         display.setBorder(new LineBorder(Color.BLACK));
         display.setPreferredSize(new Dimension(355, 700));
@@ -73,6 +77,8 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
         getContentPane().add(volume);
         getContentPane().add(volumeText);
         getContentPane().add(play);
+        getContentPane().add(posF);
+        getContentPane().add(insert);
 
         snp = new SelectNotePane(this);
     }
@@ -137,10 +143,18 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == addDelay) { //Add Delay
-            new AddDelay(this, list.size());
+            if (insert.isSelected() && !posF.getText().isEmpty()) {
+                new AddDelay(this, Integer.parseInt(posF.getText()));
+            } else {
+                new AddDelay(this, list.size());
+            }
             display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
         } else if (e.getSource() == addSound) { //Add Sound
-            new AddSound(this, list.size());
+            if (insert.isSelected() && !posF.getText().isEmpty()) {
+                new AddSound(this, Integer.parseInt(posF.getText()));
+            } else {
+                new AddSound(this, list.size());
+            }
             display.setPreferredSize(new Dimension(330, 700 + 30 * list.size()));
         } else if (e.getSource() == generate) { //Generate
             int time = 0;
@@ -159,7 +173,11 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
         } else if (e.getSource() == load) { //Load
             loadData();
         } else if (e.getSource() == play) { //Play
-            new PlayMusicThread().start();
+            if (posF.getText().isEmpty()) {
+                new PlayMusicThread().start();
+            } else {
+                new PlayMusicThread(Integer.parseInt(posF.getText())).start();
+            }
         }
     }
 
@@ -324,11 +342,22 @@ public class Main extends JFrame implements ActionListener, ChangeListener {
 
     private final List<SourceDataLine> sdls = new ArrayList<>();
     public class PlayMusicThread extends Thread {
+        private final int startPos;
+
+        public PlayMusicThread() {
+            this.startPos = 0;
+        }
+
+        public PlayMusicThread(int startPos) {
+            this.startPos = startPos;
+        }
+
         @Override
         public void run() {
             try {
                 System.out.println("running");
-                for (Object o : list) {
+                for (int i = startPos; list.size() > i; ++i) {
+                    Object o = list.get(i);
                     if (o instanceof AddSound) {
                         new PlayAudioThread(((AddSound) o).getSoundType(), getPitch(((AddSound) o).getNote()), volume.getValue(), sdls).start();
                     } else if (o instanceof AddDelay) {

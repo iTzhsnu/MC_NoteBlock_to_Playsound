@@ -38,8 +38,13 @@ public class AddDelay implements ActionListener {
         p.display.add(up);
         p.display.add(down);
 
-        p.list.add(this);
-        SwingUtilities.updateComponentTreeUI(p);
+        if (p.list.size() != pos) {
+            p.list.add(pos, this);
+            p.relocate(pos + 1, p.list.size());
+        } else {
+            p.list.add(this);
+            SwingUtilities.updateComponentTreeUI(p);
+        }
     }
 
     public void setPos() {

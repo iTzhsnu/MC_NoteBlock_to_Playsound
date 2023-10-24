@@ -14,15 +14,10 @@ public class SelectNotePane implements ActionListener {
     private final JLayeredPane pane = new JLayeredPane();
     private final JComboBox<String> soundType = new JComboBox<>();
 
-    private SourceDataLine sdl = null;
-
-    public final JTextField posF = new JTextField();
     public final List<JButton> buttons = new ArrayList<>();
 
     public SelectNotePane(Main p) {
         main = p;
-
-        posF.setBounds(400, 257, 40, 20);
 
         soundType.setBounds(450, 257, 200, 20);
         soundType.addItem("block.note_block.bass");
@@ -77,7 +72,6 @@ public class SelectNotePane implements ActionListener {
 
 
         p.getContentPane().add(pane);
-        p.getContentPane().add(posF);
         p.getContentPane().add(soundType);
     }
 
@@ -104,14 +98,18 @@ public class SelectNotePane implements ActionListener {
             JButton b = buttons.get(i);
             if (e.getSource() == b) {
                 new AudioManage(i).start();
-                if (!posF.getText().isEmpty()) {
-                    int pos = Integer.parseInt(posF.getText());
+                if (!main.posF.getText().isEmpty()) {
+                    int pos = Integer.parseInt(main.posF.getText());
                     if (pos == -1) {
                         new AddSound(main, main.list.size(), i).soundType.setSelectedItem(soundType.getItemAt(soundType.getSelectedIndex()));
                     } else if (pos > -1) {
-                        Object o = main.list.get(pos);
-                        if (o instanceof AddSound) {
-                            ((AddSound) o).setNote(i);
+                        if (main.insert.isSelected()) {
+                            new AddSound(main, pos, i).soundType.setSelectedItem(soundType.getItemAt(soundType.getSelectedIndex()));
+                        } else {
+                            Object o = main.list.get(pos);
+                            if (o instanceof AddSound) {
+                                ((AddSound) o).setNote(i);
+                            }
                         }
                     }
                 }

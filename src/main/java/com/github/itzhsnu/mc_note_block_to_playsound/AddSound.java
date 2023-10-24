@@ -67,8 +67,13 @@ public class AddSound implements ActionListener {
         p.display.add(down);
         p.display.add(select);
 
-        p.list.add(this);
-        SwingUtilities.updateComponentTreeUI(p);
+        if (p.list.size() != pos) {
+            p.list.add(pos, this);
+            p.relocate(pos + 1, p.list.size());
+        } else {
+            p.list.add(this);
+            SwingUtilities.updateComponentTreeUI(p);
+        }
     }
 
     public void setNote(int notePos) {
@@ -111,7 +116,7 @@ public class AddSound implements ActionListener {
             removeAll();
             p.relocate(pos);
         } else if (e.getSource() == select) {
-            p.snp.posF.setText(String.valueOf(pos));
+            p.posF.setText(String.valueOf(pos));
         }
     }
 }
